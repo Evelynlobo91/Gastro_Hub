@@ -1,0 +1,76 @@
+# Ambiente local completo — Fase 0 (issue #4 / #6)
+# API + PostgreSQL + Redis + RabbitMQ
+services:
+  api:
+    build:
+      context: .
+      target: development
+    command: npm run start:dev
+    ports:
+      - '${PORT:-3000}:3000'
+    env_file:
+      - .env
+    environment:
+      DB_HOST: postgres
+      REDIS_HOST: redis
+      RABBITMQ_URL: amqp://gastrohub:gastrohub@rabbitmq:5672
+    volumes:
+      - .:/usr/src/app
+      - /usr/src/app/node_modules
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${DB_USER:-gastrohub}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-gastrohub}
+      POSTGRES_DB: ${DB_NAME:-gastrohub}
+    ports:
+      - '${DB_PORT:-5432}:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${DB_USER:-gastrohub} -d ${DB_NAME:-gastrohub}']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    command: redis-server --save 60 1 --loglevel warning
+    ports:
+      - '${REDIS_PORT:-6379}:6379'
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    environment:
+      RABBITMQ_DEFAULT_USER: gastrohub
+      RABBITMQ_DEFAULT_PASS: gastrohub
+    ports:
+      - '5672:5672'
+      - '15672:15672' # painel de gerenciamento
+    volumes:
+      - rabbitmqdata:/var/lib/rabbitmq
+    healthcheck:
+      test: ['CMD', 'rabbitmq-diagnostics', '-q', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  pgdata:
+  redisdata:
+  rabbitmqdata:
