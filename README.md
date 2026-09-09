@@ -37,17 +37,24 @@ npm run seed                                    # (opcional) marcas + admin de e
 npm run start:dev                               # API em http://localhost:3000/api/v1
 ```
 
-Ou tudo em containers:
+Ou **tudo em containers com um comando** (aplica migrations e sobe a API + front):
 
 ```bash
 cp .env.example .env
 docker compose up --build
 ```
 
+- **Front de teste**: `http://localhost:3000/` — console visual para exercitar
+  cadastro, login, `/auth/me`, refresh e logout, com indicador de saúde e log de
+  todas as requisições. Serve para validar o marco da Fase 1 ("login funcional").
 - API: `http://localhost:3000/api/v1`
 - Swagger: `http://localhost:3000/api/v1/docs` (fora de produção)
 - Health: `http://localhost:3000/api/v1/health`
 - RabbitMQ (painel): `http://localhost:15672` (gastrohub / gastrohub)
+
+O front é estático (`web/`), servido pela própria API — sem CORS, sem build
+separado. Só o PostgreSQL é obrigatório; se o Redis não subir, a API continua
+funcionando (o cache de sessão degrada, issue #11).
 
 ## Scripts
 

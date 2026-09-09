@@ -1,20 +1,37 @@
 import { Logger, ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
+import { NestExpressApplication } from '@nestjs/platform-express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import helmet from 'helmet';
+import { join } from 'node:path';
 import { AppModule } from './app.module';
 import { AppConfig } from './config/configuration';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, { bufferLogs: false });
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, { bufferLogs: false });
   const config = app.get(ConfigService);
   const appCfg = config.getOrThrow<AppConfig>('app');
 
-  app.use(helmet());
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          // Libera o front estático (mesma origem) e o painel do Swagger.
+          'script-src': ["'self'"],
+          'style-src': ["'self'", "'unsafe-inline'", 'https:'],
+          'img-src': ["'self'", 'data:'],
+          'connect-src': ["'self'"],
+        },
+      },
+    }),
+  );
   app.enableCors({ origin: true, credentials: true });
 
-  // Roteamento inicial do Gateway (issue #9): tudo sob /api/<versão>.
+  // Front de teste/validação servido em / (fora da API).
+  app.useStaticAssets(join(__dirname, '..', 'web'));
+
+  // Roteamento inicial do Gateway (issue #9): a API fica toda sob /api/<versão>.
   const globalPrefix = `${appCfg.apiPrefix}/${appCfg.apiVersion}`;
   app.setGlobalPrefix(globalPrefix);
 
@@ -41,7 +58,8 @@ async function bootstrap() {
   }
 
   await app.listen(appCfg.port);
-  Logger.log(`Gastro_Hub em http://localhost:${appCfg.port}/${globalPrefix}`, 'Bootstrap');
+  Logger.log(`API  em http://localhost:${appCfg.port}/${globalPrefix}`, 'Bootstrap');
+  Logger.log(`Front em http://localhost:${appCfg.port}/`, 'Bootstrap');
 }
 
 void bootstrap();
