@@ -28,33 +28,45 @@ Ver [`docs/architecture.md`](docs/architecture.md), [`docs/DER.md`](docs/DER.md)
 
 ## Subir o ambiente
 
-```bash
-cp .env.example .env
-docker compose up -d postgres redis rabbitmq   # dependências
-npm install
-npm run migration:run                          # cria o schema
-npm run seed                                    # (opcional) marcas + admin de exemplo
-npm run start:dev                               # API em http://localhost:3000/api/v1
-```
-
-Ou **tudo em containers com um comando** (aplica migrations e sobe a API + front):
+### Opção A — tudo em containers, um comando
 
 ```bash
 cp .env.example .env
 docker compose up --build
 ```
 
-- **Front de teste**: `http://localhost:3000/` — console visual para exercitar
-  cadastro, login, `/auth/me`, refresh e logout, com indicador de saúde e log de
-  todas as requisições. Serve para validar o marco da Fase 1 ("login funcional").
-- API: `http://localhost:3000/api/v1`
-- Swagger: `http://localhost:3000/api/v1/docs` (fora de produção)
-- Health: `http://localhost:3000/api/v1/health`
-- RabbitMQ (painel): `http://localhost:15672` (gastrohub / gastrohub)
+Sobe **front + API + Postgres + Redis + RabbitMQ**, aplica as migrations e deixa
+tudo com hot-reload:
 
-O front é estático (`web/`), servido pela própria API — sem CORS, sem build
-separado. Só o PostgreSQL é obrigatório; se o Redis não subir, a API continua
-funcionando (o cache de sessão degrada, issue #11).
+| O quê | URL |
+| --- | --- |
+| **Front (console de teste)** | **http://localhost:5173** |
+| API | http://localhost:3000/api/v1 |
+| Swagger | http://localhost:3000/api/v1/docs |
+| Health | http://localhost:3000/api/v1/health |
+| RabbitMQ (painel) | http://localhost:15672 — gastrohub / gastrohub |
+
+### Opção B — sem Docker para o app (só as dependências em container)
+
+```bash
+cp .env.example .env
+docker compose up -d postgres redis rabbitmq   # ou use um Postgres local e ajuste .env
+
+# API (terminal 1)
+npm install
+npm run migration:run
+npm run seed            # opcional: marcas + admin de exemplo
+npm run start:dev       # http://localhost:3000/api/v1
+
+# Front (terminal 2)
+cd frontend
+npm install
+npm run dev             # http://localhost:5173
+```
+
+O front (`frontend/`, Vite + React) roda em **:5173** e faz proxy de `/api` para
+a API em **:3000** — sem CORS no dev. Só o PostgreSQL é obrigatório; sem Redis a
+API continua funcionando (o cache de sessão degrada, issue #11).
 
 ## Scripts
 

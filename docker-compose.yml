@@ -1,6 +1,20 @@
 # Ambiente local completo — Fase 0 (issue #4 / #6)
-# API + PostgreSQL + Redis + RabbitMQ
+# Front (Vite :5173) + API (:3000) + PostgreSQL + Redis + RabbitMQ
 services:
+  web:
+    image: node:22-alpine
+    working_dir: /app
+    command: sh -c "npm install && npm run dev"
+    ports:
+      - '5173:5173'
+    environment:
+      VITE_API_PROXY: http://api:3000
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - api
+
   api:
     build:
       context: .
