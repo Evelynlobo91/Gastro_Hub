@@ -12,7 +12,8 @@ module.exports = {
     node: true,
     jest: true,
   },
-  ignorePatterns: ['.eslintrc.js', 'dist', 'node_modules'],
+  // `frontend/` tem o próprio ESLint (React) — o lint do backend não entra lá.
+  ignorePatterns: ['.eslintrc.js', 'dist', 'node_modules', 'frontend/'],
   rules: {
     '@typescript-eslint/interface-name-prefix': 'off',
     '@typescript-eslint/explicit-function-return-type': 'off',
