@@ -79,7 +79,7 @@ API continua funcionando (o cache de sessão degrada, issue #11).
 | `npm run test:e2e` | Testes ponta-a-ponta (precisa de Postgres + migrations) |
 | `npm run lint` | ESLint + Prettier (`--fix`) |
 | `npm run migration:run` / `:revert` | Aplica / desfaz migrations |
-| `npm run migration:generate -- src/database/migrations/<Nome>` | Gera migration a partir das entidades |
+| `npm run migration:generate -- src/shared/database/migrations/<Nome>` | Gera migration a partir das entidades |
 | `npm run seed` | Popula dados de desenvolvimento |
 
 ## Fluxo rápido de autenticação

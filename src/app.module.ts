@@ -1,14 +1,14 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ThrottlerModule } from '@nestjs/throttler';
-import { CacheModule } from './cache/cache.module';
-import { CryptoModule } from './common/crypto/crypto.module';
-import configuration, { ThrottleConfig } from './config/configuration';
-import { validateEnv } from './config/env.validation';
-import { DatabaseModule } from './database/database.module';
-import { AuthModule } from './modules/auth/auth.module';
-import { GatewayModule } from './modules/gateway/gateway.module';
-import { UsersModule } from './modules/users/users.module';
+import { CacheModule } from './shared/cache/cache.module';
+import { CryptoModule } from './shared/crypto/crypto.module';
+import configuration, { ThrottleConfig } from './shared/config/configuration';
+import { validateEnv } from './shared/config/env.validation';
+import { DatabaseModule } from './shared/database/database.module';
+import { AuthModule } from './features/auth/auth.module';
+import { GatewayModule } from './features/gateway/gateway.module';
+import { UsersModule } from './features/users/users.module';
 
 /**
  * Raiz do monólito modular Gastro_Hub (issue #4).

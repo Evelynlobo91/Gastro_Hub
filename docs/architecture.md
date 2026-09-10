@@ -23,30 +23,37 @@ importando `*.service.ts` ou `*.entity.ts` de outro módulo.
 | Empacotamento | Docker Compose (dev) | `api + postgres + redis + rabbitmq` sobem com um comando |
 | CI/CD | GitHub Actions | lint → build → migrations → testes unitários → e2e |
 
-## Estrutura de pastas
+## Estrutura de pastas — slices verticais por feature
+
+Regra: **cada feature é uma pasta autocontida** (controller + service + dto +
+entities + testes juntos). Infra transversal fica em `src/shared/`. Uma feature só
+conhece outra através de `src/contracts/`.
 
 ```
 src/
 ├── main.ts                    bootstrap (helmet, ValidationPipe, prefixo /api/v1, Swagger)
-├── app.module.ts              raiz — compõe infra + módulos de domínio
-├── config/                    configuração tipada + validação de env no boot
-├── database/
-│   ├── data-source.ts         DataSource compartilhado (runtime + CLI de migrations)
-│   ├── database.module.ts
-│   ├── migrations/            migrations versionadas (issue #6)
-│   └── seeds/                 seed de desenvolvimento
-├── cache/                     Redis + SessionCacheService (issue #11) — módulo global
-├── common/
+├── app.module.ts              raiz — compõe shared + features
+├── contracts/                 DTOs/interfaces entre features (issue #5) — a fronteira
+├── shared/                    infra transversal, sem regra de negócio
+│   ├── config/                configuração tipada + validação de env no boot
+│   ├── database/
+│   │   ├── data-source.ts     DataSource compartilhado (runtime + CLI de migrations)
+│   │   ├── database.module.ts
+│   │   ├── migrations/        migrations versionadas (issue #6)
+│   │   └── seeds/             seed de desenvolvimento
+│   ├── cache/                 Redis + SessionCacheService (issue #11) — módulo global
 │   ├── crypto/                PgCryptoService — cifragem em repouso via pgcrypto (issue #7)
 │   ├── decorators/            @Public, @Roles, @CurrentUser
 │   ├── guards/                JwtAuthGuard, RolesGuard (issue #9)
 │   ├── filters/               HttpExceptionFilter (envelope de erro padrão)
 │   └── interceptors/          LoggingInterceptor
-├── contracts/                 DTOs/interfaces entre módulos (issue #5) — a fronteira
-└── modules/
+└── features/
     ├── gateway/               API Gateway / BFF: roteamento, guards globais, /health (issue #9)
     ├── auth/                  cadastro, login, refresh rotativo, logout (issue #7, #10)
-    ├── users/                 usuários + perfis (issue #8)
+    │   ├── auth.module.ts  auth.controller.ts  auth.service.ts  auth.service.spec.ts
+    │   ├── dto/               RegisterDto, LoginDto, RefreshDto
+    │   └── entities/          RefreshTokenEntity
+    ├── users/                 usuários + perfis (issue #8) — users.service + entities/
     ├── brands/                marcas (entidade base; expandida no Catálogo)
     ├── catalog/     (Fase 2)  cardápios segmentados por marca — issues #12/#13
     ├── orders/      (Fase 2)  carrinho unificado + subcomandas — issues #14/#16
@@ -54,6 +61,19 @@ src/
     ├── loyalty/     (Fase 2)  acúmulo/resgate de pontos — issues #18/#22
     ├── delivery/    (Fase 3)  pedido remoto, rota — issues #19/#21
     └── marketplace/ (Fase 3)  transferência entre marcas — issues #20/#23
+```
+
+### Front (`frontend/`) — mesmas slices
+
+```
+frontend/src/
+├── main.tsx
+├── app/                       App.tsx + styles.css (composição da página)
+├── shared/                    api.ts (fetch + barramento), jwt.ts (decode/format)
+└── features/
+    ├── auth/                  RegisterForm, LoginForm, SessionPanel, session-store
+    ├── health/               HealthPill
+    └── request-log/          RequestLog (console de requisições)
 ```
 
 ## Cross-cutting concerns (ordem de execução no Gateway)

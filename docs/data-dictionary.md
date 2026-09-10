@@ -3,7 +3,7 @@
 > A versão **formal e completa** deste documento é entregue na Fase 5 (issue #29).
 > Aqui ficam apenas as tabelas já criadas por migration (Fase 0/1).
 
-Fonte da verdade do schema: `src/database/migrations/`.
+Fonte da verdade do schema: `src/shared/database/migrations/`.
 
 ## Tipos enumerados
 
