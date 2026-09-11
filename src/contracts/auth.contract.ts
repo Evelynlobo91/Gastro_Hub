@@ -20,6 +20,10 @@ export interface JwtAccessPayload {
 export interface JwtRefreshPayload {
   sub: UUID;
   familyId: UUID;
+  /** Identificador único do token — evita colisão de hash quando duas
+   *  rotações da mesma família acontecem dentro do mesmo segundo (o `iat`
+   *  do JWT só tem resolução de segundo). */
+  jti: UUID;
   type: 'refresh';
 }
 

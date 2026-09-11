@@ -152,7 +152,12 @@ export class AuthService implements IAuthService {
     ctx: RequestContext = {},
   ): Promise<TokenPair> {
     const accessPayload: JwtAccessPayload = { sub: userId, email, role, type: 'access' };
-    const refreshPayload: JwtRefreshPayload = { sub: userId, familyId, type: 'refresh' };
+    const refreshPayload: JwtRefreshPayload = {
+      sub: userId,
+      familyId,
+      jti: randomUUID(),
+      type: 'refresh',
+    };
 
     const accessToken = await this.jwt.signAsync(accessPayload, {
       secret: this.jwtCfg.accessSecret,
