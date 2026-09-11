@@ -1,0 +1,4 @@
+# Normaliza fim de linha para LF no repositório (equipe usa Windows + Linux/CI)
+* text=auto eol=lf
+*.png binary
+*.jpg binary

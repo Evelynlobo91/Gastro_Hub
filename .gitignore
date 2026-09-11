@@ -1,0 +1,29 @@
+# dependencies
+/node_modules
+
+# build
+/dist
+/build
+*.tsbuildinfo
+
+# tests
+/coverage
+/.nyc_output
+
+# env
+.env
+.env.local
+.env.*.local
+
+# logs
+*.log
+npm-debug.log*
+
+# editor / OS
+.DS_Store
+.idea
+.vscode/*
+!.vscode/extensions.json
+
+# docker volumes locais
+/.data
