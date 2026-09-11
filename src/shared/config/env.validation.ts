@@ -1,4 +1,4 @@
-import { plainToInstance } from 'class-transformer';
+import { plainToInstance, Transform, TransformFnParams } from 'class-transformer';
 import {
   IsBoolean,
   IsEnum,
@@ -16,14 +16,26 @@ enum Environment {
 }
 
 /**
- * Valida as variáveis de ambiente no boot (issue #4).
- * Falha rápido caso algo essencial esteja ausente.
+ * Variáveis de ambiente vêm sempre como string (do shell / do CI), então a
+ * coerção para número/boolean é explícita — `enableImplicitConversion` do
+ * class-transformer é frágil e não dispara de forma confiável aqui.
+ */
+const toNumber = ({ value }: TransformFnParams): unknown =>
+  value === undefined || value === null || value === '' ? undefined : Number(value);
+
+const toBoolean = ({ value }: TransformFnParams): unknown =>
+  typeof value === 'boolean' ? value : value === 'true' || value === '1';
+
+/**
+ * Valida as variáveis de ambiente no boot (issue #4). Falha rápido se algo
+ * essencial estiver ausente ou malformado.
  */
 class EnvironmentVariables {
   @IsEnum(Environment)
   @IsOptional()
   NODE_ENV: Environment = Environment.Development;
 
+  @Transform(toNumber)
   @IsNumber()
   @IsOptional()
   PORT = 3000;
@@ -31,6 +43,7 @@ class EnvironmentVariables {
   @IsString()
   DB_HOST: string;
 
+  @Transform(toNumber)
   @IsNumber()
   @IsOptional()
   DB_PORT = 5432;
@@ -44,6 +57,7 @@ class EnvironmentVariables {
   @IsString()
   DB_NAME: string;
 
+  @Transform(toBoolean)
   @IsBoolean()
   @IsOptional()
   DB_SSL = false;
@@ -55,6 +69,7 @@ class EnvironmentVariables {
   @IsString()
   REDIS_HOST: string;
 
+  @Transform(toNumber)
   @IsNumber()
   @IsOptional()
   REDIS_PORT = 6379;
@@ -69,9 +84,7 @@ class EnvironmentVariables {
 }
 
 export function validateEnv(config: Record<string, unknown>) {
-  const validatedConfig = plainToInstance(EnvironmentVariables, config, {
-    enableImplicitConversion: true,
-  });
+  const validatedConfig = plainToInstance(EnvironmentVariables, config);
   const errors = validateSync(validatedConfig, { skipMissingProperties: false });
 
   if (errors.length > 0) {
