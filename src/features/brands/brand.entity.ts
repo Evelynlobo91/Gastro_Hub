@@ -3,6 +3,7 @@ import {
   CreateDateColumn,
   DeleteDateColumn,
   Entity,
+  OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
@@ -28,6 +29,14 @@ export class BrandEntity {
   /** CNPJ cifrado em repouso (bytea + pgcrypto). */
   @Column({ type: 'bytea', name: 'cnpj_enc', nullable: true, select: false })
   cnpjEnc: Buffer | null;
+
+  /** Descrição resumida da marca (compatibilidade Fase 2 — CatalogModule). */
+  @Column({ type: 'text', nullable: true })
+  description: string | null;
+
+  /** URL do logotipo da marca (compatibilidade Fase 2 — CatalogModule). */
+  @Column({ type: 'varchar', length: 500, nullable: true, name: 'logo_url' })
+  logoUrl: string | null;
 
   @Column({ type: 'boolean', default: true })
   active: boolean;

@@ -1,284 +1,156 @@
-import {
-  ConflictException,
-  Inject,
-  Injectable,
-  Logger,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import Redis from 'ioredis';
-import { QueryFailedError, Repository } from 'typeorm';
-import { REDIS_CLIENT } from '../../shared/cache/redis.provider';
-import {
-  BrandSummary,
-  ICatalogService,
-  PaginatedResult,
-  PaginationQuery,
-  ProductSummary,
-  UUID,
-} from '../../contracts';
+import { Repository } from 'typeorm';
+import { CreateBrandDto, UpdateBrandDto } from './dto/create-brand.dto';
+import { CreateCategoryDto, UpdateCategoryDto } from './dto/create-category.dto';
+import { CreateProductDto, UpdateProductDto } from './dto/create-product.dto';
 import { BrandEntity } from '../brands/brand.entity';
-import { CreateCategoryDto } from './dto/create-category.dto';
-import { CreateProductDto } from './dto/create-product.dto';
-import { UpdateCategoryDto } from './dto/update-category.dto';
-import { UpdateProductDto } from './dto/update-product.dto';
 import { CategoryEntity } from './entities/category.entity';
 import { ProductEntity } from './entities/product.entity';
 
 /**
- * Implementação do ICatalogService — Fase 2 (issues #12/#13).
- *
- * Cache Redis (best-effort) para leituras de cardápio:
- *   - chave: `catalog:menu:<brandId>:<page>:<pageSize>`
- *   - TTL: 60 s (suficiente para absorver picos sem stale price longo)
- *   - invalidado na escrita de qualquer produto da marca
- *
- * Regras de negócio garantidas tanto no banco (CHECK) quanto aqui:
- *   - priceCents >= 0
- *   - UNIQUE (brand_id, name) em categories → ConflictException 409
+ * CatalogService — CRUD de marcas, categorias e produtos (issue #12/#13).
  */
 @Injectable()
-export class CatalogService implements ICatalogService {
-  private readonly logger = new Logger(CatalogService.name);
-
-  /** TTL do cache de cardápio em segundos. */
-  private static readonly MENU_CACHE_TTL = 60;
-
+export class CatalogService {
   constructor(
     @InjectRepository(BrandEntity)
-    private readonly brands: Repository<BrandEntity>,
-
+    private readonly brandRepository: Repository<BrandEntity>,
     @InjectRepository(CategoryEntity)
-    private readonly categories: Repository<CategoryEntity>,
-
+    private readonly categoryRepository: Repository<CategoryEntity>,
     @InjectRepository(ProductEntity)
-    private readonly products: Repository<ProductEntity>,
-
-    @Inject(REDIS_CLIENT)
-    private readonly redis: Redis,
+    private readonly productRepository: Repository<ProductEntity>,
   ) {}
 
-  // ── ICatalogService ──────────────────────────────────────────────────────────
+  // ─── Brand ──────────────────────────────────────────────────────────────────
 
-  /** Lista marcas ativas (usado por Orders e Inventory via contrato). */
-  async listBrands(): Promise<BrandSummary[]> {
-    const rows = await this.brands.find({
-      where: { active: true },
-      withDeleted: false,
-      order: { name: 'ASC' },
+  async createBrand(dto: CreateBrandDto): Promise<BrandEntity> {
+    const brand = this.brandRepository.create({
+      name: dto.name,
+      slug: dto.slug ?? dto.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''),
+      description: dto.description ?? null,
+      logoUrl: dto.logo_url ?? null,
     });
-    return rows.map((b) => ({ id: b.id, name: b.name, slug: b.slug, active: b.active }));
+    return this.brandRepository.save(brand);
   }
 
-  /**
-   * Cardápio paginado de uma marca — resultado cacheado no Redis.
-   * Apenas produtos `available = true` são retornados (visão pública).
-   */
-  async getMenu(
-    brandId: UUID,
-    query: PaginationQuery = {},
-  ): Promise<PaginatedResult<ProductSummary>> {
-    const page = query.page ?? 1;
-    const pageSize = query.pageSize ?? 20;
-
-    const cacheKey = `catalog:menu:${brandId}:${page}:${pageSize}`;
-    const cached = await this.readCache<PaginatedResult<ProductSummary>>(cacheKey);
-    if (cached) return cached;
-
-    await this.assertBrandExists(brandId);
-
-    const [rows, total] = await this.products.findAndCount({
-      where: { brandId, available: true },
-      order: { category: { sortOrder: 'ASC' }, name: 'ASC' },
-      relations: ['category'],
-      skip: (page - 1) * pageSize,
-      take: pageSize,
-    });
-
-    const result: PaginatedResult<ProductSummary> = {
-      items: rows.map(this.toProductSummary),
-      total,
-      page,
-      pageSize,
-    };
-
-    await this.writeCache(cacheKey, result, CatalogService.MENU_CACHE_TTL);
-    return result;
+  async findAllBrands(): Promise<BrandEntity[]> {
+    return this.brandRepository.find({ where: { active: true } });
   }
 
-  /** Retorna um produto pelo id (null se não encontrado). */
-  async getProduct(productId: UUID): Promise<ProductSummary | null> {
-    const product = await this.products.findOne({
-      where: { id: productId },
-      relations: ['category'],
-    });
-    return product ? this.toProductSummary(product) : null;
+  async findBrandById(id: string): Promise<BrandEntity> {
+    const brand = await this.brandRepository.findOne({ where: { id } });
+    if (!brand) throw new NotFoundException(`Brand com ID ${id} não encontrada`);
+    return brand;
   }
 
-  // ── Categorias (CRUD admin) ──────────────────────────────────────────────────
+  async updateBrand(id: string, dto: UpdateBrandDto): Promise<BrandEntity> {
+    const brand = await this.findBrandById(id);
+    if (dto.name) brand.name = dto.name;
+    if (dto.slug) brand.slug = dto.slug;
+    if (dto.description !== undefined) brand.description = dto.description ?? null;
+    if (dto.logo_url !== undefined) brand.logoUrl = dto.logo_url ?? null;
+    return this.brandRepository.save(brand);
+  }
+
+  async deleteBrand(id: string): Promise<void> {
+    const brand = await this.findBrandById(id);
+    await this.brandRepository.softRemove(brand);
+  }
+
+  // ─── Category ───────────────────────────────────────────────────────────────
 
   async createCategory(dto: CreateCategoryDto): Promise<CategoryEntity> {
-    await this.assertBrandExists(dto.brandId);
-    try {
-      const entity = this.categories.create({
-        brandId: dto.brandId,
-        name: dto.name,
-        sortOrder: dto.sortOrder ?? 0,
-        active: dto.active ?? true,
-      });
-      return await this.categories.save(entity);
-    } catch (err) {
-      if (
-        err instanceof QueryFailedError &&
-        /uq_categories_brand_name|duplicate key/.test(err.message)
-      ) {
-        throw new ConflictException(`Categoria "${dto.name}" já existe nesta marca`);
-      }
-      throw err;
-    }
-  }
-
-  async updateCategory(id: UUID, dto: UpdateCategoryDto): Promise<CategoryEntity> {
-    const category = await this.categories.findOne({ where: { id } });
-    if (!category) throw new NotFoundException('Categoria não encontrada');
-
-    try {
-      Object.assign(category, dto);
-      return await this.categories.save(category);
-    } catch (err) {
-      if (
-        err instanceof QueryFailedError &&
-        /uq_categories_brand_name|duplicate key/.test(err.message)
-      ) {
-        throw new ConflictException(`Já existe uma categoria com este nome nesta marca`);
-      }
-      throw err;
-    }
-  }
-
-  async removeCategory(id: UUID): Promise<void> {
-    const category = await this.categories.findOne({ where: { id } });
-    if (!category) throw new NotFoundException('Categoria não encontrada');
-    await this.categories.remove(category);
-  }
-
-  async listCategories(brandId: UUID): Promise<CategoryEntity[]> {
-    await this.assertBrandExists(brandId);
-    return this.categories.find({
-      where: { brandId },
-      order: { sortOrder: 'ASC', name: 'ASC' },
+    const category = this.categoryRepository.create({
+      name: dto.name,
+      slug: dto.slug,
+      description: dto.description,
+      iconUrl: dto.icon_url,
+      parentCategoryId: dto.parent_category_id,
+      brandId: dto.brand_id,
     });
+    return this.categoryRepository.save(category);
   }
 
-  // ── Produtos (CRUD admin) ────────────────────────────────────────────────────
+  async findAllCategories(): Promise<CategoryEntity[]> {
+    return this.categoryRepository.find({ relations: ['brand'] });
+  }
+
+  async findCategoryById(id: string): Promise<CategoryEntity> {
+    const category = await this.categoryRepository.findOne({
+      where: { id },
+      relations: ['brand'],
+    });
+    if (!category) throw new NotFoundException(`Categoria com ID ${id} não encontrada`);
+    return category;
+  }
+
+  async updateCategory(id: string, dto: UpdateCategoryDto): Promise<CategoryEntity> {
+    const category = await this.findCategoryById(id);
+    if (dto.name) category.name = dto.name;
+    if (dto.slug) category.slug = dto.slug;
+    if (dto.description !== undefined) category.description = dto.description;
+    if (dto.icon_url !== undefined) category.iconUrl = dto.icon_url;
+    if (dto.parent_category_id !== undefined) category.parentCategoryId = dto.parent_category_id;
+    if (dto.brand_id !== undefined) category.brandId = dto.brand_id;
+    return this.categoryRepository.save(category);
+  }
+
+  async deleteCategory(id: string): Promise<void> {
+    const category = await this.findCategoryById(id);
+    await this.categoryRepository.remove(category);
+  }
+
+  // ─── Product ─────────────────────────────────────────────────────────────────
 
   async createProduct(dto: CreateProductDto): Promise<ProductEntity> {
-    await this.assertBrandExists(dto.brandId);
-    await this.assertCategoryBelongsToBrand(dto.categoryId, dto.brandId);
-
-    const entity = this.products.create({
-      brandId: dto.brandId,
-      categoryId: dto.categoryId,
+    const product = this.productRepository.create({
       name: dto.name,
-      description: dto.description ?? null,
-      priceCents: dto.priceCents,
-      currency: 'BRL',
-      available: dto.available ?? true,
-      attributes: dto.attributes ?? {},
+      description: dto.description,
+      sku: dto.sku,
+      priceCents: dto.price_cents,
+      stockQuantity: dto.stock_quantity,
+      imageUrl: dto.image_url,
+      specifications: dto.specifications,
+      brandId: dto.brand_id,
+      categoryId: dto.category_id,
     });
-    const saved = await this.products.save(entity);
-    await this.invalidateMenuCache(dto.brandId);
-    return saved;
+    return this.productRepository.save(product);
   }
 
-  async updateProduct(id: UUID, dto: UpdateProductDto): Promise<ProductEntity> {
-    const product = await this.products.findOne({ where: { id } });
-    if (!product) throw new NotFoundException('Produto não encontrado');
-
-    if (dto.categoryId && dto.categoryId !== product.categoryId) {
-      await this.assertCategoryBelongsToBrand(dto.categoryId, product.brandId);
-    }
-
-    Object.assign(product, {
-      ...(dto.categoryId !== undefined && { categoryId: dto.categoryId }),
-      ...(dto.name !== undefined && { name: dto.name }),
-      ...(dto.description !== undefined && { description: dto.description }),
-      ...(dto.priceCents !== undefined && { priceCents: dto.priceCents }),
-      ...(dto.available !== undefined && { available: dto.available }),
-      ...(dto.attributes !== undefined && { attributes: dto.attributes }),
+  async findAllProducts(): Promise<ProductEntity[]> {
+    return this.productRepository.find({
+      where: { isActive: true },
+      relations: ['brand', 'category'],
     });
-
-    const saved = await this.products.save(product);
-    await this.invalidateMenuCache(product.brandId);
-    return saved;
   }
 
-  async removeProduct(id: UUID): Promise<void> {
-    const product = await this.products.findOne({ where: { id } });
-    if (!product) throw new NotFoundException('Produto não encontrado');
-    await this.products.remove(product);
-    await this.invalidateMenuCache(product.brandId);
+  async findProductById(id: string): Promise<ProductEntity> {
+    const product = await this.productRepository.findOne({
+      where: { id },
+      relations: ['brand', 'category'],
+    });
+    if (!product) throw new NotFoundException(`Produto com ID ${id} não encontrado`);
+    return product;
   }
 
-  // ── Helpers internos ─────────────────────────────────────────────────────────
-
-  private toProductSummary(product: ProductEntity): ProductSummary {
-    return {
-      id: product.id,
-      brandId: product.brandId,
-      categoryId: product.categoryId,
-      name: product.name,
-      description: product.description,
-      price: { amountCents: product.priceCents, currency: 'BRL' },
-      available: product.available,
-      attributes: product.attributes,
-    };
+  async updateProduct(id: string, dto: UpdateProductDto): Promise<ProductEntity> {
+    const product = await this.findProductById(id);
+    if (dto.name) product.name = dto.name;
+    if (dto.description !== undefined) product.description = dto.description;
+    if (dto.sku !== undefined) product.sku = dto.sku;
+    if (dto.price_cents !== undefined) product.priceCents = dto.price_cents;
+    if (dto.stock_quantity !== undefined) product.stockQuantity = dto.stock_quantity;
+    if (dto.is_active !== undefined) product.isActive = dto.is_active;
+    if (dto.image_url !== undefined) product.imageUrl = dto.image_url;
+    if (dto.specifications !== undefined) product.specifications = dto.specifications;
+    if (dto.brand_id !== undefined) product.brandId = dto.brand_id;
+    if (dto.category_id !== undefined) product.categoryId = dto.category_id;
+    return this.productRepository.save(product);
   }
 
-  private async assertBrandExists(brandId: UUID): Promise<void> {
-    const exists = await this.brands.existsBy({ id: brandId, active: true });
-    if (!exists) throw new NotFoundException(`Marca "${brandId}" não encontrada ou inativa`);
-  }
-
-  private async assertCategoryBelongsToBrand(
-    categoryId: UUID,
-    brandId: UUID,
-  ): Promise<void> {
-    const exists = await this.categories.existsBy({ id: categoryId, brandId });
-    if (!exists)
-      throw new NotFoundException(`Categoria "${categoryId}" não pertence a esta marca`);
-  }
-
-  /** Invalida todas as páginas em cache do cardápio de uma marca. */
-  private async invalidateMenuCache(brandId: UUID): Promise<void> {
-    try {
-      const pattern = `catalog:menu:${brandId}:*`;
-      let cursor = '0';
-      do {
-        const [next, keys] = await this.redis.scan(cursor, 'MATCH', pattern, 'COUNT', 100);
-        cursor = next;
-        if (keys.length) await this.redis.del(...keys);
-      } while (cursor !== '0');
-    } catch (err) {
-      this.logger.warn(`Falha ao invalidar cache de cardápio: ${(err as Error).message}`);
-    }
-  }
-
-  private async readCache<T>(key: string): Promise<T | null> {
-    try {
-      const raw = await this.redis.get(key);
-      return raw ? (JSON.parse(raw) as T) : null;
-    } catch (err) {
-      this.logger.warn(`Cache miss (erro Redis): ${(err as Error).message}`);
-      return null;
-    }
-  }
-
-  private async writeCache<T>(key: string, value: T, ttl: number): Promise<void> {
-    try {
-      await this.redis.set(key, JSON.stringify(value), 'EX', ttl);
-    } catch (err) {
-      this.logger.warn(`Falha ao gravar cache: ${(err as Error).message}`);
-    }
+  async deleteProduct(id: string): Promise<void> {
+    const product = await this.findProductById(id);
+    await this.productRepository.softRemove(product);
   }
 }

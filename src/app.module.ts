@@ -7,28 +7,17 @@ import configuration, { ThrottleConfig } from './shared/config/configuration';
 import { validateEnv } from './shared/config/env.validation';
 import { DatabaseModule } from './shared/database/database.module';
 import { AuthModule } from './features/auth/auth.module';
-import { CatalogModule } from './features/catalog/catalog.module';
-import { InventoryModule } from './features/inventory/inventory.module';
 import { GatewayModule } from './features/gateway/gateway.module';
 import { UsersModule } from './features/users/users.module';
+import { CatalogModule } from './features/catalog/catalog.module';
+import { OrdersModule } from './features/orders/orders.module';
+import { RestaurantModule } from './features/restaurant/restaurant.module';
+import { InventoryModule } from './features/inventory/inventory.module';
 
 /**
- * Raiz do monólito modular Gastro_Hub (issue #4).
- *
- * Fase 0/1 entregues:
- *   - infra: config + validação de env, PostgreSQL (TypeORM), Redis, throttling
- *   - CryptoModule ...... cifragem em repouso via pgcrypto (issue #7)
- *   - CacheModule ....... cache de sessão / resiliência (issue #11)
- *   - UsersModule ....... usuários e perfis (issue #8)
- *   - AuthModule ........ cadastro, login, JWT, Argon2 (issue #7)
- *   - GatewayModule ..... roteamento, auth de requisições, health (issue #9)
- *
- * Fase 2 entregue:
- *   - CatalogModule ...... marcas, categorias, produtos, cache Redis de cardápio (issues #12/#13)
- *   - InventoryModule .... ingredientes, ficha técnica, estoque e baixa automática (issue #15)
- *
- * Fases seguintes plugam aqui: OrdersModule, InventoryModule,
- * LoyaltyModule, DeliveryModule, MarketplaceModule (contratos em src/contracts).
+ * Módulo principal do Gastro_Hub.
+ * Registra a infraestrutura global (config, database, cache, crypto)
+ * e os módulos funcionais da aplicação.
  */
 @Module({
   imports: [
@@ -50,9 +39,11 @@ import { UsersModule } from './features/users/users.module';
     CacheModule,
     UsersModule,
     AuthModule,
+    GatewayModule,
+    RestaurantModule,
     CatalogModule,
     InventoryModule,
-    GatewayModule,
+    OrdersModule,
   ],
 })
 export class AppModule {}

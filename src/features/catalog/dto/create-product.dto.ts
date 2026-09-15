@@ -1,52 +1,107 @@
+import { IsString, IsNotEmpty, IsOptional, MinLength, IsPositive, Min, IsUrl, IsUUID, IsObject, IsBoolean } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import {
-  IsBoolean,
-  IsInt,
-  IsObject,
-  IsOptional,
-  IsString,
-  IsUUID,
-  MaxLength,
-  Min,
-} from 'class-validator';
 
 export class CreateProductDto {
-  @ApiProperty({ example: 'a1b2c3d4-...', description: 'UUID da marca' })
-  @IsUUID()
-  brandId: string;
-
-  @ApiProperty({ example: 'b2c3d4e5-...', description: 'UUID da categoria' })
-  @IsUUID()
-  categoryId: string;
-
-  @ApiProperty({ example: 'X-Burguer Artesanal', maxLength: 200 })
+  @ApiProperty({ example: 'Big Mac', description: 'Nome do produto' })
   @IsString()
-  @MaxLength(200)
+  @IsNotEmpty()
+  @MinLength(2)
   name: string;
 
-  @ApiPropertyOptional({ example: 'Pão brioche, blend 180g, cheddar...', nullable: true })
-  @IsOptional()
+  @ApiPropertyOptional({ description: 'Descrição do produto' })
   @IsString()
-  @MaxLength(1000)
-  description?: string | null;
+  @IsOptional()
+  description?: string;
 
-  /**
-   * Preço em **centavos** (ex.: R$ 29,90 → 2990).
-   * CHECK (price_cents >= 0) aplicado no banco.
-   */
-  @ApiProperty({ example: 2990, description: 'Preço em centavos (BRL)' })
-  @IsInt()
+  @ApiProperty({ example: 'BK-001', description: 'SKU único do produto' })
+  @IsString()
+  @IsNotEmpty()
+  sku: string;
+
+  @ApiProperty({ example: 1990, description: 'Preço em centavos (ex: 1990 = R$ 19,90)' })
+  @IsPositive()
   @Min(0)
-  priceCents: number;
+  price_cents: number;
 
-  @ApiPropertyOptional({ example: true, default: true })
-  @IsOptional()
-  @IsBoolean()
-  available?: boolean;
+  @ApiProperty({ example: 50, description: 'Quantidade em estoque' })
+  @IsPositive()
+  @Min(0)
+  stock_quantity: number;
 
-  /** Atributos variáveis por marca (JSONB). Ex.: { "vegano": true, "picante": false } */
-  @ApiPropertyOptional({ example: { vegano: false }, default: {} })
+  @ApiPropertyOptional({ description: 'URL da imagem do produto' })
+  @IsString()
   @IsOptional()
+  @IsUrl()
+  image_url?: string;
+
+  @ApiPropertyOptional({ description: 'Atributos variáveis (JSONB)' })
   @IsObject()
-  attributes?: Record<string, unknown>;
+  @IsOptional()
+  specifications?: Record<string, unknown>;
+
+  @ApiPropertyOptional({ description: 'UUID da marca' })
+  @IsUUID()
+  @IsOptional()
+  brand_id?: string;
+
+  @ApiPropertyOptional({ description: 'UUID da categoria' })
+  @IsUUID()
+  @IsOptional()
+  category_id?: string;
+}
+
+export class UpdateProductDto {
+  @ApiPropertyOptional({ example: 'Big Mac' })
+  @IsString()
+  @IsOptional()
+  @MinLength(2)
+  name?: string;
+
+  @ApiPropertyOptional()
+  @IsString()
+  @IsOptional()
+  description?: string;
+
+  @ApiPropertyOptional()
+  @IsString()
+  @IsOptional()
+  sku?: string;
+
+  @ApiPropertyOptional()
+  @IsPositive()
+  @Min(0)
+  @IsOptional()
+  price_cents?: number;
+
+  @ApiPropertyOptional()
+  @IsPositive()
+  @Min(0)
+  @IsOptional()
+  stock_quantity?: number;
+
+  @ApiPropertyOptional()
+  @IsBoolean()
+  @IsOptional()
+  is_active?: boolean;
+
+  @ApiPropertyOptional()
+  @IsString()
+  @IsOptional()
+  @IsUrl()
+  image_url?: string;
+
+  @ApiPropertyOptional()
+  @IsObject()
+  @IsOptional()
+  specifications?: Record<string, unknown>;
+
+  @ApiPropertyOptional()
+  @IsUUID()
+  @IsOptional()
+  brand_id?: string;
+
+  @ApiPropertyOptional()
+  @IsUUID()
+  @IsOptional()
+  category_id?: string;
 }
