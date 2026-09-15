@@ -19,8 +19,8 @@ services:
     build:
       context: .
       target: development
-    # aplica migrations pendentes e sobe a API com hot-reload
-    command: sh -c "npm run migration:run && npm run start:dev"
+    # aplica migrations pendentes, popula dados iniciais e sobe a API com hot-reload
+    command: sh -c "npm run migration:run && npm run seed && npm run start:dev"
     ports:
       - '${PORT:-3000}:3000'
     env_file:
