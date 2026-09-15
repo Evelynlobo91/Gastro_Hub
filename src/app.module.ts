@@ -7,6 +7,8 @@ import configuration, { ThrottleConfig } from './shared/config/configuration';
 import { validateEnv } from './shared/config/env.validation';
 import { DatabaseModule } from './shared/database/database.module';
 import { AuthModule } from './features/auth/auth.module';
+import { CatalogModule } from './features/catalog/catalog.module';
+import { InventoryModule } from './features/inventory/inventory.module';
 import { GatewayModule } from './features/gateway/gateway.module';
 import { UsersModule } from './features/users/users.module';
 
@@ -21,7 +23,11 @@ import { UsersModule } from './features/users/users.module';
  *   - AuthModule ........ cadastro, login, JWT, Argon2 (issue #7)
  *   - GatewayModule ..... roteamento, auth de requisições, health (issue #9)
  *
- * Fases seguintes plugam aqui: CatalogModule, OrdersModule, InventoryModule,
+ * Fase 2 entregue:
+ *   - CatalogModule ...... marcas, categorias, produtos, cache Redis de cardápio (issues #12/#13)
+ *   - InventoryModule .... ingredientes, ficha técnica, estoque e baixa automática (issue #15)
+ *
+ * Fases seguintes plugam aqui: OrdersModule, InventoryModule,
  * LoyaltyModule, DeliveryModule, MarketplaceModule (contratos em src/contracts).
  */
 @Module({
@@ -44,6 +50,8 @@ import { UsersModule } from './features/users/users.module';
     CacheModule,
     UsersModule,
     AuthModule,
+    CatalogModule,
+    InventoryModule,
     GatewayModule,
   ],
 })
