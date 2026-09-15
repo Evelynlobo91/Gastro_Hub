@@ -16,7 +16,7 @@ Ver [`docs/architecture.md`](docs/architecture.md), [`docs/DER.md`](docs/DER.md)
 | --- | --- | --- |
 | 0 — Modelagem e Preparação | #31 | ✅ stack, estrutura de módulos, DER, contratos, migrations iniciais |
 | 1 — Fundação (infra + auth) | #32 | ✅ ambiente sobe + login funcional (auth, gateway, cache Redis, testes) |
-| 2 — Módulos Core | #33 | ⏳ catálogo, pedidos, estoque, pagamento, fidelidade |
+| 2 — Módulos Core | #33 | 🔄 schema de catálogo ✅ (#13), módulo de estoque ✅ (#15), pedidos/pagamento/fidelidade ⏳ |
 | 3 — Recursos Avançados | #34 | ⏳ delivery, marketplace interno |
 | 4 — Testes e Resiliência | #35 | ⏳ |
 | 5 — Deploy e Documentação | #36 | ⏳ |
