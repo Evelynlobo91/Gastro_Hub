@@ -1,5 +1,8 @@
-import { PartialType } from '@nestjs/swagger';
+import { OmitType, PartialType } from '@nestjs/swagger';
 import { CreateCategoryDto } from './create-category.dto';
 
-/** Todos os campos de CreateCategoryDto tornam-se opcionais. */
-export class UpdateCategoryDto extends PartialType(CreateCategoryDto) {}
+/**
+ * brandId é omitido intencionalmente — não é permitido mover uma categoria
+ * para outra marca via PATCH. Para isso, delete e recrie na marca correta.
+ */
+export class UpdateCategoryDto extends PartialType(OmitType(CreateCategoryDto, ['brandId'] as const)) {}

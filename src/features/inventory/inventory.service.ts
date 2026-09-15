@@ -73,6 +73,10 @@ export class InventoryService implements IInventoryService {
   /**
    * Baixa automática de estoque para um conjunto de itens de pedido.
    * Executado dentro de uma transação ACID — falha total ou sucesso total.
+   *
+   * SELECT FOR UPDATE é adquirido uma única vez por stock_level:
+   * as entidades bloqueadas são reutilizadas no loop de escrita,
+   * eliminando round-trips duplicados ao banco.
    */
   async consumeForOrder(commands: ConsumeStockCommand[]): Promise<void> {
     await this.dataSource.transaction(async (manager) => {
@@ -99,13 +103,15 @@ export class InventoryService implements IInventoryService {
         }
       }
 
-      // Valida disponibilidade antes de qualquer escrita
+      // Adquire FOR UPDATE uma única vez e guarda as entidades para reutilizar na escrita
+      const lockedLevels = new Map<string, StockLevelEntity>();
       const insufficient: string[] = [];
-      for (const entry of consumptionMap.values()) {
+
+      for (const [key, entry] of consumptionMap.entries()) {
         const level = await manager
           .createQueryBuilder(StockLevelEntity, 'sl')
           .setLock('pessimistic_write')
-          .where('sl.ingredient_id = :iid AND sl.brand_id = :bid', {
+          .where('sl.ingredientId = :iid AND sl.brandId = :bid', {
             iid: entry.ingredientId,
             bid: entry.brandId,
           })
@@ -113,6 +119,8 @@ export class InventoryService implements IInventoryService {
 
         if (!level || Number(level.onHand) < entry.total) {
           insufficient.push(entry.ingredientId);
+        } else {
+          lockedLevels.set(key, level);
         }
       }
 
@@ -122,18 +130,10 @@ export class InventoryService implements IInventoryService {
         );
       }
 
-      // Aplica baixas e registra transações
+      // Aplica baixas reutilizando entidades já bloqueadas — sem segundo FOR UPDATE
       const orderId = commands[0]?.orderId ?? null;
-      for (const entry of consumptionMap.values()) {
-        const level = await manager
-          .createQueryBuilder(StockLevelEntity, 'sl')
-          .setLock('pessimistic_write')
-          .where('sl.ingredient_id = :iid AND sl.brand_id = :bid', {
-            iid: entry.ingredientId,
-            bid: entry.brandId,
-          })
-          .getOne();
-
+      for (const [key, entry] of consumptionMap.entries()) {
+        const level = lockedLevels.get(key);
         if (!level) continue;
 
         const newOnHand = Number(level.onHand) - entry.total;
@@ -156,8 +156,8 @@ export class InventoryService implements IInventoryService {
   async getLowStock(brandId: UUID): Promise<StockLevel[]> {
     const rows = await this.dataSource
       .createQueryBuilder(StockLevelEntity, 'sl')
-      .where('sl.brand_id = :brandId', { brandId })
-      .andWhere('sl.on_hand < sl.minimum')
+      .where('sl.brandId = :brandId', { brandId })
+      .andWhere('sl.onHand < sl.minimum')
       .getMany();
 
     return rows.map((r) => ({
