@@ -11,7 +11,7 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
-import { ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
 import { UserRole } from '../../contracts';
 import { Public } from '../../shared/decorators/public.decorator';
 import { Roles } from '../../shared/decorators/roles.decorator';
@@ -29,6 +29,7 @@ import { UpdateProductDto } from './dto/update-product.dto';
  *  - Leituras públicas (@Public): GET /brands, GET /brands/:id/menu, GET /products/:id
  *  - Escrita restrita a brand_admin ou platform_admin: POST/PATCH/DELETE em categories e products
  */
+@ApiBearerAuth()
 @ApiTags('catalog')
 @Controller()
 export class CatalogController {

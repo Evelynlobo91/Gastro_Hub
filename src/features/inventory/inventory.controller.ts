@@ -11,7 +11,7 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
-import { ApiOperation, ApiParam, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiParam, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { UserRole } from '../../contracts';
 import { Roles } from '../../shared/decorators/roles.decorator';
 import { AdjustStockDto } from './dto/adjust-stock.dto';
@@ -28,6 +28,7 @@ import { InventoryService } from './inventory.service';
  * Leituras: brand_admin, platform_admin, kitchen_staff.
  * Escritas: brand_admin, platform_admin.
  */
+@ApiBearerAuth()
 @ApiTags('inventory')
 @Controller()
 export class InventoryController {
