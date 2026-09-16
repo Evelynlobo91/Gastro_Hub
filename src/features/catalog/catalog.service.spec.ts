@@ -1,4 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
+﻿import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { NotFoundException } from '@nestjs/common';
 import { CatalogService } from './catalog.service';
@@ -57,7 +57,7 @@ describe('CatalogService', () => {
         description: 'Rede internacional de fast food',
       };
 
-      const entity = { id: 'uuid', name: dto.name, slug: 'burger-king', ...dto };
+      const entity = { id: 'uuid', slug: 'burger-king', ...dto };
       brandRepository.create.mockReturnValue(entity);
       brandRepository.save.mockResolvedValue(entity);
 
