@@ -1,4 +1,4 @@
-import {
+﻿import {
   Entity,
   Column,
   PrimaryGeneratedColumn,
@@ -9,6 +9,7 @@ import {
   JoinColumn,
 } from 'typeorm';
 import { UserEntity } from '../../users/entities/user.entity';
+import { FulfillmentType } from '../../delivery/entities/delivery.entity';
 
 export enum OrderStatus {
   PENDING = 'PENDING',
@@ -44,6 +45,20 @@ export class OrderEntity {
   @Column({ type: 'varchar', length: 255, nullable: true, name: 'delivery_instructions' })
   deliveryInstructions?: string;
 
+  @Column({
+    type: 'enum',
+    enum: FulfillmentType,
+    default: FulfillmentType.DELIVERY,
+    name: 'fulfillment_type',
+  })
+  fulfillmentType: FulfillmentType;
+
+  @Column({ type: 'varchar', length: 50, nullable: true, name: 'table_number' })
+  tableNumber?: string;
+
+  @Column({ type: 'uuid', nullable: true, name: 'delivery_region_id' })
+  deliveryRegionId?: string;
+
   @Column({ type: 'enum', enum: OrderStatus, default: OrderStatus.PENDING })
   status: OrderStatus;
 
@@ -51,7 +66,7 @@ export class OrderEntity {
   @Column({ type: 'integer', nullable: false, default: 0, name: 'total_amount_cents' })
   totalAmountCents: number;
 
-  /** Taxa de entrega em centavos. */
+  /** Taxa de entrega em centavos (0 se for DINE_IN ou PICKUP, ou calculada via região). */
   @Column({ type: 'integer', nullable: false, default: 0, name: 'delivery_fee_cents' })
   deliveryFeeCents: number;
 
