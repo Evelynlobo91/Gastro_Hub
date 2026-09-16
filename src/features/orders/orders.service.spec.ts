@@ -1,4 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
+﻿import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { NotFoundException } from '@nestjs/common';
 import { OrdersService } from './orders.service';
@@ -7,6 +7,8 @@ import { OrderItemEntity } from './entities/order-item.entity';
 import { SubOrderEntity } from './entities/sub-order.entity';
 import { PaymentEntity } from './entities/payment.entity';
 import { CreateOrderDto } from './dto/create-order.dto';
+import { DeliveryService } from '../delivery/delivery.service';
+import { RabbitMQService } from '../../shared/messaging/rabbitmq.service';
 
 const mockRepository = () => ({
   create: jest.fn(),
@@ -29,6 +31,24 @@ describe('OrdersService', () => {
         { provide: getRepositoryToken(OrderItemEntity), useFactory: mockRepository },
         { provide: getRepositoryToken(SubOrderEntity), useFactory: mockRepository },
         { provide: getRepositoryToken(PaymentEntity), useFactory: mockRepository },
+        {
+          provide: DeliveryService,
+          useValue: {
+            calculateDeliveryFee: jest.fn().mockResolvedValue({
+              feeCents: 500,
+              zoneName: 'Entrega Padrão',
+              estimatedMinutes: 35,
+            }),
+            createDeliveryForOrder: jest.fn().mockResolvedValue({ id: 'uuid-delivery' }),
+          },
+        },
+        {
+          provide: RabbitMQService,
+          useValue: {
+            publish: jest.fn().mockResolvedValue(true),
+            subscribe: jest.fn().mockResolvedValue(undefined),
+          },
+        },
       ],
     }).compile();
 
@@ -55,7 +75,13 @@ describe('OrdersService', () => {
         ],
       };
 
-      const savedOrder = { id: 'uuid-order', subtotalCents: 0, totalAmountCents: 0 };
+      const savedOrder = {
+        id: 'uuid-order',
+        subtotalCents: 0,
+        totalAmountCents: 0,
+        fulfillmentType: 'DELIVERY',
+        deliveryFeeCents: 500,
+      };
       orderRepository.create.mockReturnValue(savedOrder);
       orderRepository.save.mockResolvedValue({ ...savedOrder, subtotalCents: 3980, totalAmountCents: 4480 });
       orderItemRepository.create.mockReturnValue({});
