@@ -1,4 +1,4 @@
-import {
+﻿import {
   IsUUID,
   IsString,
   IsNotEmpty,
@@ -10,10 +10,12 @@ import {
   IsIn,
   IsArray,
   ValidateNested,
+  IsEnum,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { OrderStatus } from '../entities/order.entity';
+import { FulfillmentType } from '../../delivery/entities/delivery.entity';
 
 export enum PaymentMethodDto {
   CREDIT_CARD = 'CREDIT_CARD',
@@ -71,21 +73,36 @@ export class CreateOrderDto {
   @IsNotEmpty()
   customer_phone: string;
 
-  @ApiProperty({ example: 'Av. Principal, 1234', description: 'Endereço de entrega' })
+  @ApiPropertyOptional({ example: 'Av. Principal, 1234', description: 'Endereço de entrega (obrigatório para DELIVERY)' })
   @IsString()
-  @IsNotEmpty()
-  customer_address: string;
+  @IsOptional()
+  customer_address?: string;
 
   @ApiPropertyOptional({ description: 'Instruções de entrega' })
   @IsString()
   @IsOptional()
   delivery_instructions?: string;
 
-  @ApiProperty({ example: 500, description: 'Taxa de entrega em centavos' })
+  @ApiPropertyOptional({ enum: FulfillmentType, example: FulfillmentType.DELIVERY, description: 'Tipo de consumo (DINE_IN, PICKUP, DELIVERY)' })
+  @IsEnum(FulfillmentType)
+  @IsOptional()
+  fulfillment_type?: FulfillmentType;
+
+  @ApiPropertyOptional({ example: 'Mesa 12', description: 'Número da mesa (se DINE_IN)' })
+  @IsString()
+  @IsOptional()
+  table_number?: string;
+
+  @ApiPropertyOptional({ description: 'UUID da região de entrega (se DELIVERY)' })
+  @IsUUID()
+  @IsOptional()
+  delivery_region_id?: string;
+
+  @ApiPropertyOptional({ example: 500, description: 'Taxa de entrega em centavos (calculada automaticamente se omitido)' })
   @IsNumber()
-  @IsPositive()
   @Min(0)
-  delivery_fee_cents: number;
+  @IsOptional()
+  delivery_fee_cents?: number;
 
   @ApiPropertyOptional({ enum: PaymentMethodDto, description: 'Método de pagamento' })
   @IsString()
@@ -152,7 +169,16 @@ export class UpdateOrderDto {
   @ApiPropertyOptional()
   @IsNumber()
   @IsOptional()
-  @IsPositive()
   @Min(0)
   delivery_fee_cents?: number;
+
+  @ApiPropertyOptional({ enum: FulfillmentType })
+  @IsEnum(FulfillmentType)
+  @IsOptional()
+  fulfillment_type?: FulfillmentType;
+
+  @ApiPropertyOptional()
+  @IsString()
+  @IsOptional()
+  table_number?: string;
 }
