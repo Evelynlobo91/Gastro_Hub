@@ -8,13 +8,13 @@ COPY package*.json ./
 
 # ── development ───────────────────────────────────────────────
 FROM base AS development
-RUN npm ci
+RUN npm install
 COPY . .
 CMD ["npm", "run", "start:dev"]
 
 # ── build ────────────────────────────────────────────────────
 FROM base AS build
-RUN npm ci
+RUN npm install
 COPY . .
 RUN npm run build
 RUN npm prune --omit=dev

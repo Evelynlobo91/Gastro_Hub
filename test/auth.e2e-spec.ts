@@ -1,11 +1,12 @@
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+﻿import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
+import { RabbitMQService } from '../src/shared/messaging/rabbitmq.service';
 
 /**
  * Smoke ponta-a-ponta da Fase 1: ambiente sobe + fluxo de login funcional
- * (marco de entrega do épico #32). Requer PostgreSQL com migrations aplicadas.
+ * (marco de entrega do Épico #32). Requer PostgreSQL com migrations aplicadas.
  */
 describe('Auth flow (e2e)', () => {
   let app: INestApplication;
@@ -13,7 +14,15 @@ describe('Auth flow (e2e)', () => {
   const password = 'Senha#Forte123';
 
   beforeAll(async () => {
-    const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
+    const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
+      .overrideProvider(RabbitMQService)
+      .useValue({
+        onModuleInit: jest.fn().mockResolvedValue(undefined),
+        publish: jest.fn().mockResolvedValue(true),
+        subscribe: jest.fn().mockResolvedValue(undefined),
+      })
+      .compile();
+
     app = moduleRef.createNestApplication();
     app.setGlobalPrefix('api/v1');
     app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));

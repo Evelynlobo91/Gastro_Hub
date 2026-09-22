@@ -1,70 +1,72 @@
 import {
-  Check,
-  Column,
-  CreateDateColumn,
   Entity,
-  JoinColumn,
-  ManyToOne,
+  Column,
   PrimaryGeneratedColumn,
+  CreateDateColumn,
   UpdateDateColumn,
+  DeleteDateColumn,
+  ManyToOne,
+  OneToMany,
+  JoinColumn,
 } from 'typeorm';
 import { BrandEntity } from '../../brands/brand.entity';
 import { CategoryEntity } from './category.entity';
 
 /**
- * Produto do cardápio de uma marca (issue #13 — Fase 2).
- *
- * Regras de negócio em CHECK no banco (conforme convenção do projeto):
- *   - price_cents >= 0
- *
- * Índices mantidos na migration:
- *   - Composto (brand_id, available) para filtro de cardápio
- *   - GIN em attributes para busca por atributos JSONB
+ * Produto do catálogo da praça multimarca (issue #12).
+ * Preço em centavos para evitar aritmética de ponto flutuante.
  */
-@Check('"price_cents" >= 0')
 @Entity('products')
 export class ProductEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ type: 'uuid', name: 'brand_id' })
-  brandId: string;
-
-  @ManyToOne(() => BrandEntity, { onDelete: 'CASCADE', eager: false })
-  @JoinColumn({ name: 'brand_id' })
-  brand: BrandEntity;
-
-  @Column({ type: 'uuid', name: 'category_id' })
-  categoryId: string;
-
-  @ManyToOne(() => CategoryEntity, { onDelete: 'RESTRICT', eager: false })
-  @JoinColumn({ name: 'category_id' })
-  category: CategoryEntity;
-
-  @Column({ type: 'text' })
+  @Column({ type: 'varchar', length: 255, nullable: false })
   name: string;
 
-  @Column({ type: 'text', nullable: true })
-  description: string | null;
+  @Column({ type: 'varchar', length: 2000, nullable: true })
+  description?: string;
 
-  /** Preço em centavos — nunca float (convenção do projeto). */
-  @Column({ type: 'int', name: 'price_cents' })
+  @Column({ type: 'varchar', length: 255, nullable: true, unique: true })
+  sku?: string;
+
+  /** Preço em centavos (ex: 1990 = R$ 19,90). */
+  @Column({ type: 'integer', nullable: false, name: 'price_cents' })
   priceCents: number;
 
-  /** Moeda ISO-4217, padrão BRL. */
-  @Column({ type: 'char', length: 3, default: 'BRL' })
-  currency: string;
+  @Column({ type: 'integer', default: 0, name: 'stock_quantity' })
+  stockQuantity: number;
 
-  @Column({ type: 'boolean', default: true })
-  available: boolean;
+  @Column({ type: 'boolean', default: true, name: 'is_active' })
+  isActive: boolean;
 
-  /** Atributos variáveis por marca — mapeado para coluna JSONB com índice GIN. */
-  @Column({ type: 'jsonb', default: {} })
-  attributes: Record<string, unknown>;
+  @Column({ type: 'varchar', length: 255, nullable: true, name: 'image_url' })
+  imageUrl?: string;
+
+  /** Atributos variáveis por marca (tamanho, ingredientes, etc.). */
+  @Column({ type: 'jsonb', nullable: true })
+  specifications?: Record<string, unknown>;
+
+  @Column({ type: 'uuid', nullable: true, name: 'brand_id' })
+  brandId?: string;
+
+  @Column({ type: 'uuid', nullable: true, name: 'category_id' })
+  categoryId?: string;
+
+  @ManyToOne(() => BrandEntity, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'brand_id' })
+  brand?: BrandEntity;
+
+  @ManyToOne(() => CategoryEntity, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'category_id' })
+  category?: CategoryEntity;
 
   @CreateDateColumn({ type: 'timestamptz', name: 'created_at' })
   createdAt: Date;
 
   @UpdateDateColumn({ type: 'timestamptz', name: 'updated_at' })
   updatedAt: Date;
+
+  @DeleteDateColumn({ type: 'timestamptz', name: 'deleted_at', nullable: true })
+  deletedAt?: Date;
 }

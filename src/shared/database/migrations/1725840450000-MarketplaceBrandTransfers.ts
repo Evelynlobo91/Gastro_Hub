@@ -11,8 +11,8 @@ import { MigrationInterface, QueryRunner } from 'typeorm';
  * Status da transferência controlado por enum brand_transfer_status.
  * Índices para consultas por marca origem, destino e ingrediente.
  */
-export class MarketplaceBrandTransfers1725840400000 implements MigrationInterface {
-  name = 'MarketplaceBrandTransfers1725840400000';
+export class MarketplaceBrandTransfers1725840450000 implements MigrationInterface {
+  name = 'MarketplaceBrandTransfers1725840450000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`

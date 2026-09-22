@@ -1,133 +1,165 @@
 import {
-  Body,
   Controller,
-  Delete,
   Get,
-  HttpCode,
-  HttpStatus,
+  Post,
+  Put,
+  Delete,
+  Body,
   Param,
   ParseUUIDPipe,
-  Patch,
-  Post,
-  Query,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
-import { UserRole } from '../../contracts';
-import { Public } from '../../shared/decorators/public.decorator';
-import { Roles } from '../../shared/decorators/roles.decorator';
+import {
+  ApiTags,
+  ApiBearerAuth,
+  ApiOperation,
+  ApiParam,
+  ApiCreatedResponse,
+  ApiOkResponse,
+  ApiNotFoundResponse,
+} from '@nestjs/swagger';
 import { CatalogService } from './catalog.service';
-import { CreateCategoryDto } from './dto/create-category.dto';
-import { CreateProductDto } from './dto/create-product.dto';
-import { MenuQueryDto } from './dto/menu-query.dto';
-import { UpdateCategoryDto } from './dto/update-category.dto';
-import { UpdateProductDto } from './dto/update-product.dto';
+import { CreateBrandDto, UpdateBrandDto } from './dto/create-brand.dto';
+import { CreateCategoryDto, UpdateCategoryDto } from './dto/create-category.dto';
+import { CreateProductDto, UpdateProductDto } from './dto/create-product.dto';
+import { BrandEntity } from '../brands/brand.entity';
+import { CategoryEntity } from './entities/category.entity';
+import { ProductEntity } from './entities/product.entity';
 
-/**
- * Rotas do módulo de Catálogo (issues #12/#13 — Fase 2).
- *
- * Visibilidade:
- *  - Leituras públicas (@Public): GET /brands, GET /brands/:id/menu, GET /products/:id
- *  - Escrita restrita a brand_admin ou platform_admin: POST/PATCH/DELETE em categories e products
- */
-@ApiBearerAuth()
 @ApiTags('catalog')
-@Controller()
+@ApiBearerAuth()
+@Controller('catalog')
 export class CatalogController {
-  constructor(private readonly catalog: CatalogService) {}
+  constructor(private readonly catalogService: CatalogService) {}
 
-  // ── Marcas (leitura pública) ─────────────────────────────────────────────────
+  // ─── Brands ─────────────────────────────────────────────────────────────────
 
-  @Public()
+  @Post('brands')
+  @ApiOperation({ summary: 'Criar nova marca' })
+  @ApiCreatedResponse({ type: BrandEntity })
+  async createBrand(@Body() createBrandDto: CreateBrandDto): Promise<BrandEntity> {
+    return this.catalogService.createBrand(createBrandDto);
+  }
+
   @Get('brands')
-  @ApiOperation({ summary: 'Lista todas as marcas ativas' })
-  listBrands() {
-    return this.catalog.listBrands();
+  @ApiOperation({ summary: 'Listar todas as marcas ativas' })
+  @ApiOkResponse({ type: [BrandEntity] })
+  async findAllBrands(): Promise<BrandEntity[]> {
+    return this.catalogService.findAllBrands();
   }
 
-  // ── Cardápio (leitura pública) ───────────────────────────────────────────────
-
-  @Public()
-  @Get('brands/:brandId/menu')
-  @ApiOperation({ summary: 'Cardápio paginado de uma marca (produtos disponíveis)' })
-  @ApiParam({ name: 'brandId', format: 'uuid' })
-  getMenu(
-    @Param('brandId', ParseUUIDPipe) brandId: string,
-    @Query() query: MenuQueryDto,
-  ) {
-    return this.catalog.getMenu(brandId, query);
-  }
-
-  @Public()
-  @Get('products/:id')
-  @ApiOperation({ summary: 'Detalhe de um produto pelo ID' })
+  @Get('brands/:id')
+  @ApiOperation({ summary: 'Buscar marca por ID' })
   @ApiParam({ name: 'id', format: 'uuid' })
-  getProduct(@Param('id', ParseUUIDPipe) id: string) {
-    return this.catalog.getProduct(id);
+  @ApiOkResponse({ type: BrandEntity })
+  @ApiNotFoundResponse({ description: 'Marca não encontrada' })
+  async findBrand(@Param('id', ParseUUIDPipe) id: string): Promise<BrandEntity> {
+    return this.catalogService.findBrandById(id);
   }
 
-  // ── Categorias (admin) ───────────────────────────────────────────────────────
-
-  @Get('brands/:brandId/categories')
-  @Roles(UserRole.BRAND_ADMIN, UserRole.PLATFORM_ADMIN)
-  @ApiOperation({ summary: 'Lista categorias de uma marca (admin)' })
-  @ApiParam({ name: 'brandId', format: 'uuid' })
-  listCategories(@Param('brandId', ParseUUIDPipe) brandId: string) {
-    return this.catalog.listCategories(brandId);
+  @Put('brands/:id')
+  @ApiOperation({ summary: 'Atualizar marca' })
+  @ApiParam({ name: 'id', format: 'uuid' })
+  @ApiOkResponse({ type: BrandEntity })
+  async updateBrand(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() updateBrandDto: UpdateBrandDto,
+  ): Promise<BrandEntity> {
+    return this.catalogService.updateBrand(id, updateBrandDto);
   }
+
+  @Delete('brands/:id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Desativar marca (soft delete)' })
+  @ApiParam({ name: 'id', format: 'uuid' })
+  async deleteBrand(@Param('id', ParseUUIDPipe) id: string): Promise<void> {
+    return this.catalogService.deleteBrand(id);
+  }
+
+  // ─── Categories ──────────────────────────────────────────────────────────────
 
   @Post('categories')
-  @Roles(UserRole.BRAND_ADMIN, UserRole.PLATFORM_ADMIN)
-  @ApiOperation({ summary: 'Cria categoria em uma marca (admin)' })
-  createCategory(@Body() dto: CreateCategoryDto) {
-    return this.catalog.createCategory(dto);
+  @ApiOperation({ summary: 'Criar nova categoria' })
+  @ApiCreatedResponse({ type: CategoryEntity })
+  async createCategory(@Body() createCategoryDto: CreateCategoryDto): Promise<CategoryEntity> {
+    return this.catalogService.createCategory(createCategoryDto);
   }
 
-  @Patch('categories/:id')
-  @Roles(UserRole.BRAND_ADMIN, UserRole.PLATFORM_ADMIN)
-  @ApiOperation({ summary: 'Atualiza categoria (admin)' })
+  @Get('categories')
+  @ApiOperation({ summary: 'Listar todas as categorias' })
+  @ApiOkResponse({ type: [CategoryEntity] })
+  async findAllCategories(): Promise<CategoryEntity[]> {
+    return this.catalogService.findAllCategories();
+  }
+
+  @Get('categories/:id')
+  @ApiOperation({ summary: 'Buscar categoria por ID' })
   @ApiParam({ name: 'id', format: 'uuid' })
-  updateCategory(
+  @ApiOkResponse({ type: CategoryEntity })
+  @ApiNotFoundResponse({ description: 'Categoria não encontrada' })
+  async findCategory(@Param('id', ParseUUIDPipe) id: string): Promise<CategoryEntity> {
+    return this.catalogService.findCategoryById(id);
+  }
+
+  @Put('categories/:id')
+  @ApiOperation({ summary: 'Atualizar categoria' })
+  @ApiParam({ name: 'id', format: 'uuid' })
+  async updateCategory(
     @Param('id', ParseUUIDPipe) id: string,
-    @Body() dto: UpdateCategoryDto,
-  ) {
-    return this.catalog.updateCategory(id, dto);
+    @Body() updateCategoryDto: UpdateCategoryDto,
+  ): Promise<CategoryEntity> {
+    return this.catalogService.updateCategory(id, updateCategoryDto);
   }
 
   @Delete('categories/:id')
-  @Roles(UserRole.BRAND_ADMIN, UserRole.PLATFORM_ADMIN)
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Remove categoria (admin) — falha se houver produtos' })
+  @ApiOperation({ summary: 'Remover categoria' })
   @ApiParam({ name: 'id', format: 'uuid' })
-  async removeCategory(@Param('id', ParseUUIDPipe) id: string): Promise<void> {
-    await this.catalog.removeCategory(id);
+  async deleteCategory(@Param('id', ParseUUIDPipe) id: string): Promise<void> {
+    return this.catalogService.deleteCategory(id);
   }
 
-  // ── Produtos (admin) ─────────────────────────────────────────────────────────
+  // ─── Products ────────────────────────────────────────────────────────────────
 
   @Post('products')
-  @Roles(UserRole.BRAND_ADMIN, UserRole.PLATFORM_ADMIN)
-  @ApiOperation({ summary: 'Cria produto no catálogo (admin)' })
-  createProduct(@Body() dto: CreateProductDto) {
-    return this.catalog.createProduct(dto);
+  @ApiOperation({ summary: 'Criar novo produto' })
+  @ApiCreatedResponse({ type: ProductEntity })
+  async createProduct(@Body() createProductDto: CreateProductDto): Promise<ProductEntity> {
+    return this.catalogService.createProduct(createProductDto);
   }
 
-  @Patch('products/:id')
-  @Roles(UserRole.BRAND_ADMIN, UserRole.PLATFORM_ADMIN)
-  @ApiOperation({ summary: 'Atualiza produto (admin)' })
+  @Get('products')
+  @ApiOperation({ summary: 'Listar todos os produtos ativos' })
+  @ApiOkResponse({ type: [ProductEntity] })
+  async findAllProducts(): Promise<ProductEntity[]> {
+    return this.catalogService.findAllProducts();
+  }
+
+  @Get('products/:id')
+  @ApiOperation({ summary: 'Buscar produto por ID' })
   @ApiParam({ name: 'id', format: 'uuid' })
-  updateProduct(
+  @ApiOkResponse({ type: ProductEntity })
+  @ApiNotFoundResponse({ description: 'Produto não encontrado' })
+  async findProduct(@Param('id', ParseUUIDPipe) id: string): Promise<ProductEntity> {
+    return this.catalogService.findProductById(id);
+  }
+
+  @Put('products/:id')
+  @ApiOperation({ summary: 'Atualizar produto' })
+  @ApiParam({ name: 'id', format: 'uuid' })
+  async updateProduct(
     @Param('id', ParseUUIDPipe) id: string,
-    @Body() dto: UpdateProductDto,
-  ) {
-    return this.catalog.updateProduct(id, dto);
+    @Body() updateProductDto: UpdateProductDto,
+  ): Promise<ProductEntity> {
+    return this.catalogService.updateProduct(id, updateProductDto);
   }
 
   @Delete('products/:id')
-  @Roles(UserRole.BRAND_ADMIN, UserRole.PLATFORM_ADMIN)
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Remove produto (admin) — invalida cache do cardápio' })
+  @ApiOperation({ summary: 'Remover produto (soft delete)' })
   @ApiParam({ name: 'id', format: 'uuid' })
-  async removeProduct(@Param('id', ParseUUIDPipe) id: string): Promise<void> {
-    await this.catalog.removeProduct(id);
+  async deleteProduct(@Param('id', ParseUUIDPipe) id: string): Promise<void> {
+    return this.catalogService.deleteProduct(id);
   }
 }

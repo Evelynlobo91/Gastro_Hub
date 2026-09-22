@@ -1,24 +1,72 @@
+import { IsString, IsNotEmpty, IsOptional, MinLength, IsUrl, IsUUID } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsBoolean, IsInt, IsOptional, IsString, IsUUID, MaxLength, Min } from 'class-validator';
 
 export class CreateCategoryDto {
-  @ApiProperty({ example: 'a1b2c3d4-...', description: 'UUID da marca dona da categoria' })
-  @IsUUID()
-  brandId: string;
-
-  @ApiProperty({ example: 'Lanches', maxLength: 120 })
+  @ApiProperty({ example: 'Lanches', description: 'Nome da categoria' })
   @IsString()
-  @MaxLength(120)
+  @IsNotEmpty()
+  @MinLength(2)
   name: string;
 
-  @ApiPropertyOptional({ example: 1, default: 0 })
-  @IsOptional()
-  @IsInt()
-  @Min(0)
-  sortOrder?: number;
+  @ApiProperty({ example: 'lanches', description: 'Slug único da categoria' })
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(1)
+  slug: string;
 
-  @ApiPropertyOptional({ example: true, default: true })
+  @ApiPropertyOptional({ description: 'Descrição da categoria' })
+  @IsString()
   @IsOptional()
-  @IsBoolean()
-  active?: boolean;
+  description?: string;
+
+  @ApiPropertyOptional({ description: 'URL do ícone da categoria' })
+  @IsString()
+  @IsOptional()
+  @IsUrl()
+  icon_url?: string;
+
+  @ApiPropertyOptional({ description: 'UUID da categoria pai (subcategorias)' })
+  @IsUUID()
+  @IsOptional()
+  parent_category_id?: string;
+
+  @ApiPropertyOptional({ description: 'UUID da marca à qual a categoria pertence' })
+  @IsUUID()
+  @IsOptional()
+  brand_id?: string;
+}
+
+export class UpdateCategoryDto {
+  @ApiPropertyOptional({ example: 'Lanches', description: 'Nome da categoria' })
+  @IsString()
+  @IsOptional()
+  @MinLength(2)
+  name?: string;
+
+  @ApiPropertyOptional({ example: 'lanches', description: 'Slug único da categoria' })
+  @IsString()
+  @IsOptional()
+  @MinLength(1)
+  slug?: string;
+
+  @ApiPropertyOptional({ description: 'Descrição da categoria' })
+  @IsString()
+  @IsOptional()
+  description?: string;
+
+  @ApiPropertyOptional({ description: 'URL do ícone da categoria' })
+  @IsString()
+  @IsOptional()
+  @IsUrl()
+  icon_url?: string;
+
+  @ApiPropertyOptional({ description: 'UUID da categoria pai' })
+  @IsUUID()
+  @IsOptional()
+  parent_category_id?: string;
+
+  @ApiPropertyOptional({ description: 'UUID da marca' })
+  @IsUUID()
+  @IsOptional()
+  brand_id?: string;
 }
