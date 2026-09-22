@@ -10,11 +10,9 @@
 import { OrderEntity } from '../../orders/entities/order.entity';
 import { DeliveryZoneEntity } from './delivery-zone.entity';
 
-export enum FulfillmentType {
-  DINE_IN = 'DINE_IN',
-  PICKUP = 'PICKUP',
-  DELIVERY = 'DELIVERY',
-}
+// Re-exporta FulfillmentType para não quebrar imports externos
+export { FulfillmentType } from '../../orders/enums/fulfillment-type.enum';
+import { FulfillmentType } from '../../orders/enums/fulfillment-type.enum';
 
 export enum DeliveryStatus {
   PENDING = 'PENDING',

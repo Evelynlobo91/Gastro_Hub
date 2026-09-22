@@ -80,6 +80,7 @@ export class InventorySchema1725840300000 implements MigrationInterface {
         minimum         numeric(12, 4) NOT NULL DEFAULT 0,
         below_minimum   boolean GENERATED ALWAYS AS (on_hand < minimum) STORED,
         CONSTRAINT chk_stock_minimum CHECK (minimum >= 0),
+        CONSTRAINT chk_stock_on_hand_non_negative CHECK (on_hand >= 0),
         CONSTRAINT uq_stock_levels_ingredient_brand UNIQUE (ingredient_id, brand_id),
         CONSTRAINT fk_stock_ingredient FOREIGN KEY (ingredient_id)
           REFERENCES ingredients (id) ON DELETE RESTRICT,

@@ -8,18 +8,34 @@ import configuration, { ThrottleConfig } from './shared/config/configuration';
 import { validateEnv } from './shared/config/env.validation';
 import { DatabaseModule } from './shared/database/database.module';
 import { AuthModule } from './features/auth/auth.module';
-import { GatewayModule } from './features/gateway/gateway.module';
-import { UsersModule } from './features/users/users.module';
 import { CatalogModule } from './features/catalog/catalog.module';
+import { DeliveryModule } from './features/delivery/delivery.module';
+import { InventoryModule } from './features/inventory/inventory.module';
+import { MarketplaceModule } from './features/marketplace/marketplace.module';
 import { OrdersModule } from './features/orders/orders.module';
 import { RestaurantModule } from './features/restaurant/restaurant.module';
-import { InventoryModule } from './features/inventory/inventory.module';
-import { DeliveryModule } from './features/delivery/delivery.module';
+import { GatewayModule } from './features/gateway/gateway.module';
+import { UsersModule } from './features/users/users.module';
 
 /**
- * Módulo principal do Gastro_Hub.
- * Registra a infraestrutura global (config, database, cache, crypto, messaging)
- * e os módulos funcionais da aplicação (auth, catalog, orders, delivery, etc).
+ * Raiz do monólito modular Gastro_Hub (issue #4).
+ *
+ * Fase 0/1 entregues:
+ *   - infra: config + validação de env, PostgreSQL (TypeORM), Redis, throttling
+ *   - CryptoModule ...... cifragem em repouso via pgcrypto (issue #7)
+ *   - CacheModule ....... cache de sessão / resiliência (issue #11)
+ *   - MessagingModule ... RabbitMQ para operações assíncronas
+ *   - UsersModule ....... usuários e perfis (issue #8)
+ *   - AuthModule ........ cadastro, login, JWT, Argon2 (issue #7)
+ *   - GatewayModule ..... roteamento, auth de requisições, health (issue #9)
+ *
+ * Fase 2/3 entregues:
+ *   - CatalogModule ...... marcas, categorias, produtos, cache Redis (issues #12/#13)
+ *   - InventoryModule .... ingredientes, ficha técnica, estoque (issues #15/#17)
+ *   - MarketplaceModule .. transferência de insumos entre marcas ACID (issues #20/#23)
+ *   - OrdersModule ....... pedidos, subcomandas, pagamento (issue #14)
+ *   - DeliveryModule ..... entrega e roteamento (issue #19)
+ *   - RestaurantModule ... gestão de restaurantes
  */
 @Module({
   imports: [
@@ -46,8 +62,9 @@ import { DeliveryModule } from './features/delivery/delivery.module';
     RestaurantModule,
     CatalogModule,
     InventoryModule,
-    DeliveryModule,
+    MarketplaceModule,
     OrdersModule,
+    DeliveryModule,
   ],
 })
 export class AppModule {}

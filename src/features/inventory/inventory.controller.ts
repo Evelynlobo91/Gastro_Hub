@@ -119,4 +119,20 @@ export class InventoryController {
   adjustStock(@Body() dto: AdjustStockDto) {
     return this.inventory.adjustStock(dto);
   }
+
+  // ── Histórico de transações (issue #17) ───────────────────────────────────────
+
+  @Get('brands/:brandId/stock/:ingredientId/transactions')
+  @Roles(UserRole.BRAND_ADMIN, UserRole.PLATFORM_ADMIN, UserRole.KITCHEN_STAFF)
+  @ApiOperation({ summary: 'Histórico de transações de estoque de um insumo em uma marca (issue #17)' })
+  @ApiParam({ name: 'brandId', format: 'uuid' })
+  @ApiParam({ name: 'ingredientId', format: 'uuid' })
+  @ApiQuery({ name: 'limit', required: false, description: 'Máximo de registros (padrão 50, máx 200)' })
+  getStockTransactions(
+    @Param('ingredientId', ParseUUIDPipe) ingredientId: string,
+    @Param('brandId', ParseUUIDPipe) brandId: string,
+    @Query('limit') limit?: number,
+  ) {
+    return this.inventory.getStockTransactions(ingredientId, brandId, limit);
+  }
 }

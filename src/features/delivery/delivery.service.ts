@@ -2,7 +2,8 @@
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { DeliveryZoneEntity } from './entities/delivery-zone.entity';
-import { DeliveryEntity, DeliveryStatus, FulfillmentType } from './entities/delivery.entity';
+import { DeliveryEntity, DeliveryStatus } from './entities/delivery.entity';
+import { FulfillmentType } from '../orders/enums/fulfillment-type.enum';
 import { CreateDeliveryZoneDto, UpdateDeliveryZoneDto } from './dto/create-delivery-zone.dto';
 import { UpdateDeliveryStatusDto } from './dto/update-delivery-status.dto';
 import { RabbitMQService } from '../../shared/messaging/rabbitmq.service';

@@ -11,6 +11,7 @@ import { IngredientEntity } from './ingredient.entity';
  * é lida via query raw ou QueryBuilder quando necessário.
  */
 @Check('"minimum" >= 0')
+@Check('"on_hand" >= 0')
 @Entity('stock_levels')
 export class StockLevelEntity {
   @PrimaryGeneratedColumn('uuid')
