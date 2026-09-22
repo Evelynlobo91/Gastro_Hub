@@ -237,6 +237,27 @@ export class InventoryService implements IInventoryService {
 
   // ── Estoque (operações admin) ────────────────────────────────────────────────
 
+  /**
+   * Histórico de transações de estoque de um insumo em uma marca (issue #17).
+   * Ordenado do mais recente para o mais antigo.
+   */
+  async getStockTransactions(
+    ingredientId: UUID,
+    brandId: UUID,
+    limit = 50,
+  ): Promise<StockTransactionEntity[]> {
+    const level = await this.stockLevels.findOne({
+      where: { ingredientId, brandId },
+    });
+    if (!level) return [];
+
+    return this.stockTransactions.find({
+      where: { stockLevelId: level.id },
+      order: { createdAt: 'DESC' },
+      take: Math.min(limit, 200),
+    });
+  }
+
   async setStockMinimum(dto: SetStockMinimumDto): Promise<StockLevelEntity> {
     let level = await this.stockLevels.findOne({
       where: { ingredientId: dto.ingredientId, brandId: dto.brandId },

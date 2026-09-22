@@ -9,6 +9,7 @@ import { DatabaseModule } from './shared/database/database.module';
 import { AuthModule } from './features/auth/auth.module';
 import { CatalogModule } from './features/catalog/catalog.module';
 import { InventoryModule } from './features/inventory/inventory.module';
+import { MarketplaceModule } from './features/marketplace/marketplace.module';
 import { GatewayModule } from './features/gateway/gateway.module';
 import { UsersModule } from './features/users/users.module';
 
@@ -25,10 +26,10 @@ import { UsersModule } from './features/users/users.module';
  *
  * Fase 2 entregue:
  *   - CatalogModule ...... marcas, categorias, produtos, cache Redis de cardápio (issues #12/#13)
- *   - InventoryModule .... ingredientes, ficha técnica, estoque e baixa automática (issue #15)
+ *   - InventoryModule .... ingredientes, ficha técnica, estoque e baixa automática (issues #15/#17)
+ *   - MarketplaceModule .. transferência de insumos entre marcas, ACID (issues #20/#23)
  *
- * Fases seguintes plugam aqui: OrdersModule, InventoryModule,
- * LoyaltyModule, DeliveryModule, MarketplaceModule (contratos em src/contracts).
+ * Fases seguintes plugam aqui: OrdersModule, LoyaltyModule, DeliveryModule (contratos em src/contracts).
  */
 @Module({
   imports: [
@@ -52,6 +53,7 @@ import { UsersModule } from './features/users/users.module';
     AuthModule,
     CatalogModule,
     InventoryModule,
+    MarketplaceModule,
     GatewayModule,
   ],
 })
