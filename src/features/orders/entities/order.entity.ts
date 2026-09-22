@@ -9,7 +9,7 @@
   JoinColumn,
 } from 'typeorm';
 import { UserEntity } from '../../users/entities/user.entity';
-import { FulfillmentType } from '../../delivery/entities/delivery.entity';
+import { FulfillmentType } from '../enums/fulfillment-type.enum';
 
 export enum OrderStatus {
   PENDING = 'PENDING',
